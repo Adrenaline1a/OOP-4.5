@@ -1,0 +1,7 @@
+certifi==2021.10.8
+colorama==0.4.4
+mypy==0.942
+mypy-extensions==0.4.3
+tomli==2.0.1
+typing_extensions==4.1.1
+wincertstore==0.2
