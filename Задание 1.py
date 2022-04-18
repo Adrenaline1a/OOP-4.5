@@ -5,12 +5,14 @@
 import argparse
 import json
 import pathlib
+import colorama
+from colorama import Fore
 
 
 def selecting(line: str, flights: list, nom: str) -> None:
     """Выбор рейсов по типу самолёта"""
     count: int = 0
-    print(line)
+    print(Fore.RED + f'{line}')
     print(
         '| {:^4} | {:^20} | {:^15} | {:^16} |'.format(
             "№",
@@ -21,18 +23,18 @@ def selecting(line: str, flights: list, nom: str) -> None:
     for i, num in enumerate(flights, 1):
         if nom == num.get('value', ''):
             count += 1
-            print(
+            print(Fore.BLUE +
                 '| {:<4} | {:<20} | {:<15} | {:<16} |'.format(
                     count,
                     num.get('stay', ''),
                     num.get('number', ''),
                     num.get('value', 0)))
-    print(line)
+    print(Fore.RED + f'{line}')
 
 
 def table(line: str, flights: list) -> None:
     """Вывод скиска рейсов"""
-    print(line)
+    print(Fore.RED + f'{line}')
     print(
         '| {:^4} | {:^20} | {:^15} | {:^16} |'.format(
             "№",
@@ -41,7 +43,7 @@ def table(line: str, flights: list) -> None:
             "Тип"))
     print(line)
     for i, num in enumerate(flights, 1):
-        print(
+        print(Fore.BLUE +
             '| {:<4} | {:<20} | {:<15} | {:<16} |'.format(
                 i,
                 num.get('stay', ''),
@@ -49,7 +51,7 @@ def table(line: str, flights: list) -> None:
                 num.get('value', 0)
             )
         )
-    print(line)
+    print(Fore.RED + f'{line}')
 
 
 def adding(flights: list, stay: str, number: str, value: str) -> list:
@@ -76,6 +78,7 @@ def opening(file_name: pathlib.Path) -> None:
 
 
 def main(command_line=None):
+    colorama.init()
     file_parser: argparse.ArgumentParser = argparse.ArgumentParser(add_help=False)
     file_parser.add_argument(
         "filename",
