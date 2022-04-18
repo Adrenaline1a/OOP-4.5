@@ -5,11 +5,12 @@
 import argparse
 import json
 import pathlib
+from typing import List
 import colorama
 from colorama import Fore
 
 
-def selecting(line: str, flights: list, nom: str) -> None:
+def selecting(line: str, flights: List[dict], nom: str) -> None:
     """Выбор рейсов по типу самолёта"""
     count: int = 0
     print(Fore.RED + f'{line}')
@@ -32,7 +33,7 @@ def selecting(line: str, flights: list, nom: str) -> None:
     print(Fore.RED + f'{line}')
 
 
-def table(line: str, flights: list) -> None:
+def table(line: str, flights: List[dict]) -> None:
     """Вывод скиска рейсов"""
     print(Fore.RED + f'{line}')
     print(
@@ -54,7 +55,7 @@ def table(line: str, flights: list) -> None:
     print(Fore.RED + f'{line}')
 
 
-def adding(flights: list, stay: str, number: str, value: str) -> list:
+def adding(flights: List[dict], stay: str, number: str, value: str) -> list:
     flights.append(
         {
             'stay': stay,
@@ -65,14 +66,14 @@ def adding(flights: list, stay: str, number: str, value: str) -> list:
     return flights
 
 
-def saving(file_name: str, flights: list) -> None:
+def saving(file_name: str, flights: List[dict]) -> None:
     with open(file_name, "w", encoding="utf-8") as file_out:
         json.dump(flights, file_out, ensure_ascii=False, indent=4)
     work_dir: pathlib.Path = pathlib.Path.cwd()/file_name
     work_dir.replace(pathlib.Path.home()/file_name)
 
 
-def opening(file_name: pathlib.Path) -> None:
+def opening(file_name: pathlib.Path) -> list:
     with open(file_name, "r", encoding="utf-8") as f_in:
         return json.load(f_in)
 
@@ -124,16 +125,16 @@ def main(command_line=None):
     home: pathlib.Path = pathlib.Path.home()/name
 
     if home.exists():
-        flights: list = opening(home)
+        flights: List[dict] = opening(home)
     else:
-        flights: list = []
+        flights: List[dict] = []
 
     line: str = '+-{}-+-{}-+-{}-+-{}-+'.format(
         '-' * 4,
         '-' * 20,
         '-' * 15,
         '-' * 16)
-
+    
     if args.command == "add":
         flights: list = adding(flights, args.stay, args.number, args.value)
         is_dirty = True
