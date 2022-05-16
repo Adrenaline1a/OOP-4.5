@@ -110,7 +110,7 @@ class Listing:
             tree.write(fout, encoding='utf8', xml_declaration=True)
 
 
-def main(command_line=None):
+def main(command_line=None) -> None:
     staff = Listing()
     file_parser = argparse.ArgumentParser(add_help=False)
     file_parser.add_argument(
