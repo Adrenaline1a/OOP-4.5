@@ -2,95 +2,127 @@
 # -*- coding: utf-8 -*-
 
 
+from dataclasses import dataclass, field
 import argparse
-import json
 import pathlib
 from typing import List
-import colorama
-from colorama import Fore
+import xml.etree.ElementTree as ET
 
 
-def selecting(line: str, flights: List[dict], nom: str) -> None:
-    """Выбор рейсов по типу самолёта"""
-    count: int = 0
-    print(Fore.RED + f'{line}')
-    print(
-        '| {:^4} | {:^20} | {:^15} | {:^16} |'.format(
-            "№",
-            "Место прибытия",
-            "Номер самолёта",
-            "Тип"))
-    print(line)
-    for i, num in enumerate(flights, 1):
-        if nom == num.get('value', ''):
-            count += 1
-            print(Fore.BLUE +
-                '| {:<4} | {:<20} | {:<15} | {:<16} |'.format(
-                    count,
-                    num.get('stay', ''),
-                    num.get('number', ''),
-                    num.get('value', 0)))
-    print(Fore.RED + f'{line}')
+@dataclass(frozen=True)
+class Flight:
+    stay: str
+    number: str
+    value: str
 
 
-def table(line: str, flights: List[dict]) -> None:
-    """Вывод скиска рейсов"""
-    print(Fore.RED + f'{line}')
-    print(
-        '| {:^4} | {:^20} | {:^15} | {:^16} |'.format(
-            "№",
-            "Место прибытия",
-            "Номер самолёта",
-            "Тип"))
-    print(line)
-    for i, num in enumerate(flights, 1):
-        print(Fore.BLUE +
-            '| {:<4} | {:<20} | {:<15} | {:<16} |'.format(
-                i,
-                num.get('stay', ''),
-                num.get('number', ''),
-                num.get('value', 0)
+@dataclass
+class Listing:
+    flights: List[Flight] = field(default_factory=lambda: [])
+
+    def adding(self, stay, number, value) -> None:
+        self.flights.append(
+            Flight(
+                stay=stay,
+                number=number,
+                value=value
             )
         )
-    print(Fore.RED + f'{line}')
 
+    def table(self) -> str:
+        """Вывод скиска рейсов"""
+        table = []
+        line: str = '+-{}-+-{}-+-{}-+-{}-+'.format(
+                    '-' * 4,
+                    '-' * 20,
+                    '-' * 15,
+                    '-' * 16
+                )
+        table.append(line)
+        table.append(
+            '| {:^4} | {:^20} | {:^15} | {:^16} |'.format(
+                "№",
+                "Место прибытия",
+                "Номер самолёта",
+                "Тип"
+            )
+        )
+        table.append(line)
+        for i, num in enumerate(self.flights, 1):
+            table.append(
+                '| {:<4} | {:<20} | {:<15} | {:<16} |'.format(
+                    i,
+                    num.stay,
+                    num.number,
+                    num.value
+                )
+            )
+        table.append(line)
+        return '\n'.join(table)
 
-def adding(flights: List[dict], stay: str, number: str, value: str) -> list:
-    flights.append(
-        {
-            'stay': stay,
-            'number': number,
-            'value': value
-        }
-    )
-    return flights
+    def selecting(self, nom) -> List[Flight]:
+        """Выбор рейсов по типу самолёта"""
+        result: List[Flight] = []
+        for i in self.flights:
+            result.append(i)
 
+        return result
+        
+    def load(self, filename) -> str:
+        with open(filename, 'r', encoding='utf8') as fin:
+            xml = fin.read()
+        parser = ET.XMLParser(encoding="utf8")
+        tree = ET.fromstring(xml, parser=parser)
+        self.flights = []
+        for flight_element in tree:
+            stay, number, value = None, None, None
+            for element in flight_element:
+                if element.tag == 'stay':
+                    stay = element.text
+                elif element.tag == 'number':
+                    number = element.text
+                elif element.tag == 'value':
+                    value = element.text
+                if stay is not None and number is not None and value is not None:
+                    self.flights.append(
+                        Flight(
+                            stay=stay,
+                            number=number,
+                            value=value
+                        )
+                    )
+        return filename
 
-def saving(file_name: str, flights: List[dict]) -> None:
-    with open(file_name, "w", encoding="utf-8") as file_out:
-        json.dump(flights, file_out, ensure_ascii=False, indent=4)
-    work_dir: pathlib.Path = pathlib.Path.cwd()/file_name
-    work_dir.replace(pathlib.Path.home()/file_name)
+    def save(self, filename) -> None:
+        root = ET.Element('flights')
+        for flight in self.flights:
+            flights_element = ET.Element('flights')
+            stay_element = ET.SubElement(flights_element, 'stay')
+            stay_element.text = flight.stay
 
-
-def opening(file_name: pathlib.Path) -> list:
-    with open(file_name, "r", encoding="utf-8") as f_in:
-        return json.load(f_in)
+            number_element = ET.SubElement(flights_element, 'number')
+            number_element.text = flight.number
+            value_element = ET.SubElement(flights_element, 'value')
+            value_element.text = flight.value
+            root.append(flights_element)
+        tree = ET.ElementTree(root)
+        with open(filename, 'wb') as fout:
+            tree.write(fout, encoding='utf8', xml_declaration=True)
 
 
 def main(command_line=None):
-    colorama.init()
-    file_parser: argparse.ArgumentParser = argparse.ArgumentParser(add_help=False)
+    staff = Listing()
+    file_parser = argparse.ArgumentParser(add_help=False)
     file_parser.add_argument(
         "filename",
         action="store",)
-    parser: argparse.ArgumentParser = argparse.ArgumentParser("flights")
+    parser = argparse.ArgumentParser("flights")
     parser.add_argument(
         "--version",
         action="version",
         version="%(prog)s 0.1.0")
-    subparsers: argparse.ArgumentParser = parser.add_subparsers(dest="command")
-    add: argparse.ArgumentParser = subparsers.add_parser(
+    subparsers = parser.add_subparsers(dest="command")
+    add = subparsers.add_parser(
         "add",
         parents=[file_parser])
     add.add_argument(
@@ -108,10 +140,10 @@ def main(command_line=None):
         "--number",
         action="store",
         required=True,)
-    _: argparse.ArgumentParser = subparsers.add_parser(
+    _ = subparsers.add_parser(
         "display",
         parents=[file_parser],)
-    select: argparse.ArgumentParser = subparsers.add_parser(
+    select = subparsers.add_parser(
         "select",
         parents=[file_parser],)
     select.add_argument(
@@ -119,31 +151,25 @@ def main(command_line=None):
         "--type",
         action="store",
         required=True,)
-    args: argparse.ArgumentParser = parser.parse_args(command_line)
-    is_dirty: bool = False
-    name: pathlib.Path = args.filename
-    home: pathlib.Path = pathlib.Path.home()/name
+    args = parser.parse_args(command_line)
+    is_dirty = False
+    name = args.filename
+    names = pathlib.Path.cwd()/name
 
-    if home.exists():
-        flights: List[dict] = opening(home)
+    if names.exists():
+        filename = staff.load(name)
     else:
-        flights: List[dict] = []
+        filename = args.filename
 
-    line: str = '+-{}-+-{}-+-{}-+-{}-+'.format(
-        '-' * 4,
-        '-' * 20,
-        '-' * 15,
-        '-' * 16)
-    
     if args.command == "add":
-        flights: list = adding(flights, args.stay, args.number, args.value)
+        staff.adding(args.stay, args.number, args.value)
         is_dirty = True
     elif args.command == 'display':
-        table(line, flights)
+        staff.table()
     elif args.command == "select":
-        selecting(line, flights, args.type)
+        staff.selecting(args.type)
     if is_dirty:
-        saving(args.filename, flights)
+        staff.save(filename)
 
 
 if __name__ == '__main__':
